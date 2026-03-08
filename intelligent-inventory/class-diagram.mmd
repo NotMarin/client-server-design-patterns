@@ -1,0 +1,261 @@
+---
+config:
+  theme: neutral
+id: be70770f-c252-4dfa-bff3-b461e018dba0
+---
+classDiagram
+
+    class ProductCategory {
+        <<enumeration>>
+        Electronics = "ELECTRONICS"
+        Food = "FOOD"
+        Clothing = "CLOTHING"
+        Perishable = "PERISHABLE"
+    }
+
+    class ProductProps {
+        <<interface>>
+        +readonly id: string
+        +readonly name: string
+        +readonly category: ProductCategory
+        +quantity: number
+        +readonly unitPrice: number
+    }
+
+    class CreateProductParams {
+        <<interface>>
+        +readonly id: string
+        +readonly name: string
+        +readonly category: ProductCategory
+        +readonly quantity: number
+        +readonly unitPrice: number
+    }
+
+    class ExternalOrderResponse {
+        <<interface>>
+        +readonly order_id: string
+        +readonly item_code: string
+        +readonly qty_confirmed: number
+        +readonly status: "ACCEPTED" | "REJECTED"
+    }
+
+    class SupplierOrder {
+        <<interface>>
+        +readonly productId: string
+        +readonly productName: string
+        +readonly quantity: number
+        +readonly supplierName: string
+    }
+
+    class ReorderResult {
+        <<interface>>
+        +readonly product: Product
+        +readonly quantityOrdered: number
+        +readonly order: SupplierOrder
+        +readonly strategyUsed: string
+    }
+
+    class Product {
+        <<abstract>>
+        +readonly id: string
+        +readonly name: string
+        +readonly category: ProductCategory
+        +quantity: number
+        +readonly unitPrice: number
+        +getStorageRequirements()* string
+        +toString() string
+    }
+
+    class ElectronicsProduct {
+        +getStorageRequirements() string
+    }
+
+    class FoodProduct {
+        +getStorageRequirements() string
+    }
+
+    class ClothingProduct {
+        +getStorageRequirements() string
+    }
+
+    class PerishableProduct {
+        +getStorageRequirements() string
+    }
+
+    class InventoryConfig {
+        -static instance: InventoryConfig | null
+        -_minStockThreshold: number
+        -_defaultReorderQuantity: number
+        -_systemName: string
+        -constructor()
+        +static getInstance() InventoryConfig
+        +get minStockThreshold() number
+        +set minStockThreshold(value: number)
+        +get defaultReorderQuantity() number
+        +set defaultReorderQuantity(value: number)
+        +get systemName() string
+    }
+
+    class ProductFactory {
+        +static create(params: CreateProductParams) Product
+    }
+
+    class ReorderStrategy {
+        <<interface>>
+        +readonly name: string
+        +calculateReorderQuantity(product: Product, currentStock: number) number
+    }
+
+    class FixedReorderStrategy {
+        +readonly name: string = "Fixed Reorder"
+        +calculateReorderQuantity(product: Product, currentStock: number) number
+    }
+
+    class DemandBasedReorderStrategy {
+        +readonly name: string = "Demand-Based Reorder"
+        -readonly demandMultiplier: number
+        +calculateReorderQuantity(product: Product, currentStock: number) number
+    }
+
+    class SeasonalReorderStrategy {
+        +readonly name: string = "Seasonal Reorder"
+        -readonly seasonalMultipliers: number[]
+        +calculateReorderQuantity(product: Product, currentStock: number) number
+    }
+
+    class StockObserver {
+        <<interface>>
+        +update(product: Product, currentStock: number, threshold: number) void
+    }
+
+    class EmailAlert {
+        +update(product: Product, currentStock: number, threshold: number) void
+    }
+
+    class SMSAlert {
+        +update(product: Product, currentStock: number, threshold: number) void
+    }
+
+    class SlackAlert {
+        +update(product: Product, currentStock: number, threshold: number) void
+    }
+
+    class ProductRepository {
+        <<interface>>
+        +save(product: Product) void
+        +findById(id: string) Product | undefined
+        +findAll() Product[]
+        +delete(id: string) boolean
+        +update(product: Product) void
+    }
+
+    class InMemoryProductRepository {
+        -readonly products: Map~string, Product~
+        +save(product: Product) void
+        +findById(id: string) Product | undefined
+        +findAll() Product[]
+        +delete(id: string) boolean
+        +update(product: Product) void
+    }
+
+    class Supplier {
+        <<interface>>
+        +readonly name: string
+        +placeOrder(productId: string, productName: string, quantity: number) SupplierOrder
+        +isAvailable(productId: string) boolean
+    }
+
+    class ExternalSupplierAPI {
+        -readonly supplierCode: string
+        +submitPurchaseOrder(itemCode: string, requestedQty: number) ExternalOrderResponse
+        +checkItemAvailability(itemCode: string) boolean
+        +getSupplierCode() string
+    }
+
+    class SupplierAdapter {
+        -readonly externalApi: ExternalSupplierAPI
+        +readonly name: string
+        +placeOrder(productId: string, productName: string, quantity: number) SupplierOrder
+        +isAvailable(productId: string) boolean
+    }
+
+    class InventoryManager {
+        -readonly repository: ProductRepository
+        -readonly observers: StockObserver[]
+        -reorderStrategy: ReorderStrategy
+        -supplier: Supplier
+        +addObserver(observer: StockObserver) void
+        +removeObserver(observer: StockObserver) void
+        -notifyObservers(product: Product, currentStock: number) void
+        +setReorderStrategy(strategy: ReorderStrategy) void
+        +setSupplier(supplier: Supplier) void
+        +addProduct(product: Product) void
+        +getProduct(id: string) Product | undefined
+        +getAllProducts() Product[]
+        +updateStock(productId: string, newQuantity: number) ReorderResult | null
+        +monitorInventory() ReorderResult[]
+        -executeReorder(product: Product, currentStock: number) ReorderResult | null
+    }
+
+    class InventoryFacade {
+        -readonly config: InventoryConfig
+        -readonly repository: ProductRepository
+        -readonly manager: InventoryManager
+        +registerProduct(id, name, category, quantity, unitPrice) Product
+        +updateProductStock(productId: string, newQuantity: number) ReorderResult | null
+        +monitorInventory() ReorderResult[]
+        +setStockThreshold(threshold: number) void
+        +setReorderQuantity(quantity: number) void
+        +setReorderStrategy(strategy: ReorderStrategy) void
+        +setSupplier(supplier: Supplier) void
+        +addAlertChannel(observer: StockObserver) void
+        +getProduct(id: string) Product | undefined
+        +listAllProducts() Product[]
+        +printInventoryReport() void
+    }
+    ElectronicsProduct --|> Product
+    FoodProduct --|> Product
+    ClothingProduct --|> Product
+    PerishableProduct --|> Product
+    FixedReorderStrategy ..|> ReorderStrategy
+    DemandBasedReorderStrategy ..|> ReorderStrategy
+    SeasonalReorderStrategy ..|> ReorderStrategy
+    EmailAlert ..|> StockObserver
+    SMSAlert ..|> StockObserver
+    SlackAlert ..|> StockObserver
+    InMemoryProductRepository ..|> ProductRepository
+    SupplierAdapter ..|> Supplier
+    SupplierAdapter *-- ExternalSupplierAPI : externalApi
+    Product --> ProductCategory : category
+    ProductProps --> ProductCategory : category
+    CreateProductParams --> ProductCategory : category
+    ProductFactory ..> Product : creates
+    ProductFactory ..> ElectronicsProduct : creates
+    ProductFactory ..> FoodProduct : creates
+    ProductFactory ..> ClothingProduct : creates
+    ProductFactory ..> PerishableProduct : creates
+    ProductFactory ..> CreateProductParams : uses
+    InMemoryProductRepository o-- "0..*" Product : products
+    FixedReorderStrategy ..> InventoryConfig : uses
+    DemandBasedReorderStrategy ..> InventoryConfig : uses
+    SeasonalReorderStrategy ..> InventoryConfig : uses
+    ExternalSupplierAPI ..> ExternalOrderResponse : returns
+    Supplier ..> SupplierOrder : returns
+    ReorderResult --> Product : product
+    ReorderResult --> SupplierOrder : order
+    InventoryManager *-- ProductRepository : repository
+    InventoryManager o-- "0..*" StockObserver : observers
+    InventoryManager --> ReorderStrategy : reorderStrategy
+    InventoryManager --> Supplier : supplier
+    InventoryManager ..> InventoryConfig : uses
+    InventoryManager ..> ReorderResult : returns
+    InventoryFacade *-- InventoryConfig : config
+    InventoryFacade *-- ProductRepository : repository
+    InventoryFacade *-- InventoryManager : manager
+    InventoryFacade ..> ProductFactory : uses
+    InventoryFacade ..> FixedReorderStrategy : creates default
+    InventoryFacade ..> SupplierAdapter : creates default
+    InventoryFacade ..> ExternalSupplierAPI : creates default
+    InventoryFacade ..> EmailAlert : creates
+    InventoryFacade ..> SMSAlert : creates
+    InventoryFacade ..> ReorderResult : returns

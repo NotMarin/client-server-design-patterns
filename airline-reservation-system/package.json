@@ -1,0 +1,20 @@
+{
+  "name": "airline-reservation-system",
+  "version": "1.0.0",
+  "description": "Sistema empresarial de reservas aéreas implementado en **TypeScript** que integra cuatro patrones de diseño (Builder, Strategy, State y Observer) en una arquitectura cohesiva, desacoplada y extensible.",
+  "main": "index.js",
+  "scripts": {
+    "build": "tsc",
+    "start": "node dist/main.js",
+    "dev": "npx ts-node --esm src/main.ts"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "module",
+  "devDependencies": {
+    "@types/node": "^25.3.5",
+    "ts-node": "^10.9.2",
+    "typescript": "^5.9.3"
+  }
+}

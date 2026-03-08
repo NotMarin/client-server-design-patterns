@@ -1,0 +1,250 @@
+---
+config:
+  theme: neutral
+id: 16280f49-0966-4ce3-b893-21e366105060
+---
+classDiagram
+
+    class SeatClass {
+        <<enumeration>>
+        ECONOMY
+        PREMIUM
+        FIRST_CLASS
+    }
+
+    class ReservationEvent {
+        <<enumeration>>
+        CONFIRMED
+        CANCELLED
+        CHECKED_IN
+        BOARDED
+        MODIFIED
+        UPGRADED
+    }
+
+    class Season {
+        <<enumeration>>
+        LOW
+        REGULAR
+        HIGH
+    }
+
+    class ReservationState {
+        <<interface>>
+        +readonly name: string
+        +confirm(reservation: Reservation) void
+        +cancel(reservation: Reservation) void
+        +checkIn(reservation: Reservation) void
+        +board(reservation: Reservation) void
+        +modify(reservation: Reservation) void
+        +upgrade(reservation: Reservation) void
+    }
+
+    class PricingStrategy {
+        <<interface>>
+        +readonly name: string
+        +calculatePrice(basePrice: number, reservation: Reservation) number
+    }
+
+    class ReservationObserver {
+        <<interface>>
+        +update(event: ReservationEvent, reservation: Reservation) void
+    }
+
+    class Passenger {
+        +readonly name: string
+        +readonly passport: string
+        +readonly email: string
+        +readonly phone: string
+    }
+
+    class Flight {
+        +readonly flightNumber: string
+        +readonly origin: string
+        +readonly destination: string
+        +readonly departureDate: Date
+        +readonly arrivalDate: Date
+    }
+
+    class Seat {
+        +readonly number: string
+        +readonly seatClass: SeatClass
+        +isAvailable: boolean
+        +reserve() void
+        +release() void
+    }
+
+    class AdditionalService {
+        +readonly name: string
+        +readonly price: number
+    }
+
+    class Reservation {
+        +readonly id: string
+        +readonly passenger: Passenger
+        +readonly flight: Flight
+        +seat: Seat
+        +readonly basePrice: number
+        +readonly additionalServices: AdditionalService[]
+        +pricingStrategy: PricingStrategy
+        -state: ReservationState
+        -readonly observers: ReservationObserver[]
+        +confirm() void
+        +cancel() void
+        +checkIn() void
+        +board() void
+        +modify() void
+        +upgrade() void
+        +setState(newState: ReservationState) void
+        +getStateName() string
+        +addObserver(observer: ReservationObserver) void
+        +removeObserver(observer: ReservationObserver) void
+        +notifyObservers(event: ReservationEvent) void
+        +calculateTotalPrice() number
+        +setPricingStrategy(strategy: PricingStrategy) void
+    }
+
+    class PendingState {
+        +readonly name: string = "PENDING"
+        +confirm(reservation: Reservation) void
+        +cancel(reservation: Reservation) void
+        +checkIn(reservation: Reservation) void
+        +board(reservation: Reservation) void
+        +modify(reservation: Reservation) void
+        +upgrade(reservation: Reservation) void
+    }
+
+    class ConfirmedState {
+        +readonly name: string = "CONFIRMED"
+        +confirm(reservation: Reservation) void
+        +cancel(reservation: Reservation) void
+        +checkIn(reservation: Reservation) void
+        +board(reservation: Reservation) void
+        +modify(reservation: Reservation) void
+        +upgrade(reservation: Reservation) void
+    }
+
+    class CheckedInState {
+        +readonly name: string = "CHECKED_IN"
+        +confirm(reservation: Reservation) void
+        +cancel(reservation: Reservation) void
+        +checkIn(reservation: Reservation) void
+        +board(reservation: Reservation) void
+        +modify(reservation: Reservation) void
+        +upgrade(reservation: Reservation) void
+    }
+
+    class BoardedState {
+        +readonly name: string = "BOARDED"
+        +confirm(reservation: Reservation) void
+        +cancel(reservation: Reservation) void
+        +checkIn(reservation: Reservation) void
+        +board(reservation: Reservation) void
+        +modify(reservation: Reservation) void
+        +upgrade(reservation: Reservation) void
+    }
+
+    class CancelledState {
+        +readonly name: string = "CANCELLED"
+        +confirm(reservation: Reservation) void
+        +cancel(reservation: Reservation) void
+        +checkIn(reservation: Reservation) void
+        +board(reservation: Reservation) void
+        +modify(reservation: Reservation) void
+        +upgrade(reservation: Reservation) void
+    }
+
+    class EconomyPricing {
+        +readonly name: string = "EconomyPricing"
+        +calculatePrice(basePrice: number, reservation: Reservation) number
+        -getSeasonMultiplier(departureDate: Date) number
+        -getAnticipationDiscount(departureDate: Date) number
+        -determineSeason(date: Date) Season
+    }
+
+    class PremiumPricing {
+        +readonly name: string = "PremiumPricing"
+        -static readonly CLASS_MULTIPLIER: number = 2.0
+        +calculatePrice(basePrice: number, reservation: Reservation) number
+        -getSeasonMultiplier(departureDate: Date) number
+        -determineSeason(date: Date) Season
+    }
+
+    class FirstClassPricing {
+        +readonly name: string = "FirstClassPricing"
+        -static readonly CLASS_MULTIPLIER: number = 4.0
+        +calculatePrice(basePrice: number, reservation: Reservation) number
+        -getSeasonMultiplier(departureDate: Date) number
+        -determineSeason(date: Date) Season
+    }
+
+    class EmailNotifier {
+        +update(event: ReservationEvent, reservation: Reservation) void
+    }
+
+    class SMSNotifier {
+        +update(event: ReservationEvent, reservation: Reservation) void
+    }
+
+    class AppNotifier {
+        +update(event: ReservationEvent, reservation: Reservation) void
+    }
+
+    class ReservationBuilder {
+        -passenger: Passenger
+        -flight: Flight
+        -seat: Seat
+        -basePrice: number
+        -pricingStrategy: PricingStrategy
+        -additionalServices: AdditionalService[]
+        -observers: ReservationObserver[]
+        -generateId() string
+        +setPassenger(name: string, passport: string, email: string, phone: string) this
+        +setFlight(flightNumber: string, origin: string, destination: string, departureDate: Date, arrivalDate: Date) this
+        +setSeat(number: string, seatClass: SeatClass) this
+        +setBasePrice(price: number) this
+        +setPricingStrategy(strategy: PricingStrategy) this
+        +addService(name: string, price: number) this
+        +addObserver(observer: ReservationObserver) this
+        +build() Reservation
+        -resolveDefaultStrategy(seatClass: SeatClass) PricingStrategy
+    }
+    PendingState ..|> ReservationState
+    ConfirmedState ..|> ReservationState
+    CheckedInState ..|> ReservationState
+    BoardedState ..|> ReservationState
+    CancelledState ..|> ReservationState
+    EconomyPricing ..|> PricingStrategy
+    PremiumPricing ..|> PricingStrategy
+    FirstClassPricing ..|> PricingStrategy
+    EmailNotifier ..|> ReservationObserver
+    SMSNotifier ..|> ReservationObserver
+    AppNotifier ..|> ReservationObserver
+    Reservation *-- Passenger : passenger
+    Reservation *-- Flight : flight
+    Reservation *-- Seat : seat
+    Reservation o-- "0..*" AdditionalService : additionalServices
+    Reservation --> ReservationState : state
+    Reservation --> PricingStrategy : pricingStrategy
+    Reservation o-- "0..*" ReservationObserver : observers
+    Seat --> SeatClass : seatClass
+    EconomyPricing ..> Season : uses
+    PremiumPricing ..> Season : uses
+    FirstClassPricing ..> Season : uses
+    ReservationObserver ..> ReservationEvent : uses
+    ReservationBuilder ..> Passenger : creates
+    ReservationBuilder ..> Flight : creates
+    ReservationBuilder ..> Seat : creates
+    ReservationBuilder ..> AdditionalService : creates
+    ReservationBuilder ..> Reservation : creates
+    ReservationBuilder ..> PendingState : creates initial state
+    ReservationBuilder ..> SeatClass : uses
+    ReservationBuilder ..> PricingStrategy : uses
+    ReservationBuilder ..> ReservationObserver : uses
+    PendingState ..> ConfirmedState : creates
+    PendingState ..> CancelledState : creates
+    ConfirmedState ..> CheckedInState : creates
+    ConfirmedState ..> CancelledState : creates
+    ConfirmedState ..> PendingState : creates
+    CheckedInState ..> BoardedState : creates
+    CheckedInState ..> CancelledState : creates

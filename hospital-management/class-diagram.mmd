@@ -1,0 +1,356 @@
+---
+config:
+  theme: neutral
+id: d87fc03a-adff-43f2-ba7a-f7a1253f4ba9
+---
+classDiagram
+
+    class PersonRole {
+        <<type>>
+        "patient"
+        "doctor"
+        "admin"
+    }
+
+    class BillingType {
+        <<type>>
+        "private"
+        "insurance"
+        "agreement"
+    }
+
+    class AppointmentStatus {
+        <<type>>
+        "scheduled"
+        "confirmed"
+        "cancelled"
+        "completed"
+    }
+
+    class ClinicalEventType {
+        <<type>>
+        "appointment:confirmed"
+        "appointment:cancelled"
+        "medication:reminder"
+        "clinical:update"
+        "emergency:alert"
+    }
+
+    class Person {
+        <<interface>>
+        +readonly id: string
+        +readonly name: string
+        +readonly email: string
+        +readonly phone: string
+        +readonly role: PersonRole
+    }
+
+    class Doctor {
+        <<interface>>
+        +readonly role: "doctor"
+        +readonly specialty: string
+        +readonly licenseNumber: string
+    }
+
+    class Patient {
+        <<interface>>
+        +readonly role: "patient"
+        +readonly dateOfBirth: string
+        +readonly billingType: BillingType
+        +readonly insuranceId?: string
+    }
+
+    class AdminStaff {
+        <<interface>>
+        +readonly role: "admin"
+        +readonly department: string
+    }
+
+    class Appointment {
+        <<interface>>
+        +readonly id: string
+        +readonly patientId: string
+        +readonly doctorId: string
+        +readonly date: string
+        +readonly reason: string
+        +status: AppointmentStatus
+    }
+
+    class ClinicalRecord {
+        <<interface>>
+        +readonly id: string
+        +readonly patientId: string
+        +readonly doctorId: string
+        +readonly date: string
+        +readonly diagnosis: string
+        +readonly treatment: string
+        +readonly notes: string
+    }
+
+    class Invoice {
+        <<interface>>
+        +readonly id: string
+        +readonly patientId: string
+        +readonly appointmentId: string
+        +readonly date: string
+        +readonly baseAmount: number
+        +readonly discount: number
+        +readonly totalAmount: number
+        +readonly billingMethod: string
+    }
+
+    class HospitalSettings {
+        <<interface>>
+        +hospitalName: string
+        +operatingHours: ~open: string, close: string~
+        +emergencyPhone: string
+        +maxAppointmentsPerDay: number
+    }
+
+    class HospitalConfig {
+        -static instance: HospitalConfig | null
+        -settings: HospitalSettings
+        -constructor()
+        +static getInstance() HospitalConfig
+        +getSettings() Readonly~HospitalSettings~
+        +updateSettings(partial: Partial~HospitalSettings~) void
+        +static resetInstance() void
+    }
+
+    class ClinicalEvent {
+        <<interface>>
+        +readonly type: ClinicalEventType
+        +readonly patientId: string
+        +readonly doctorId?: string
+        +readonly message: string
+        +readonly timestamp: Date
+    }
+
+    class ClinicalObserver {
+        <<interface>>
+        +readonly channelName: string
+        +update(event: ClinicalEvent) void
+    }
+
+    class ClinicalEventEmitter {
+        -observers: Map~ClinicalEventType, ClinicalObserver[]~
+        +subscribe(eventType: ClinicalEventType, observer: ClinicalObserver) void
+        +unsubscribe(eventType: ClinicalEventType, observer: ClinicalObserver) void
+        +emit(event: ClinicalEvent) void
+    }
+
+    class EmailNotifier {
+        +readonly channelName: "email"
+        +update(event: ClinicalEvent) void
+    }
+
+    class SmsNotifier {
+        +readonly channelName: "sms"
+        +update(event: ClinicalEvent) void
+    }
+
+    class PushNotifier {
+        +readonly channelName: "push"
+        +update(event: ClinicalEvent) void
+    }
+
+    class ExternalInsuranceResponse {
+        <<interface>>
+        +cod: number
+        +cov: number
+        +auth: string
+        +msg: string
+    }
+
+    class ExternalInsuranceAPI {
+        +verificarCobertura(cedula: string, poliza: string) ExternalInsuranceResponse
+        +enviarReclamacion(authCode: string, monto: number) ~ok: boolean, ref: string~
+    }
+
+    class CoverageResult {
+        <<interface>>
+        +readonly isActive: boolean
+        +readonly coveragePercentage: number
+        +readonly authorizationCode: string
+        +readonly message: string
+    }
+
+    class ClaimResult {
+        <<interface>>
+        +readonly success: boolean
+        +readonly referenceNumber: string
+    }
+
+    class InsurancePort {
+        <<interface>>
+        +verifyCoverage(patientId: string, policyNumber: string) CoverageResult
+        +submitClaim(authorizationCode: string, amount: number) ClaimResult
+    }
+
+    class InsuranceAdapter {
+        -readonly externalApi: ExternalInsuranceAPI
+        +verifyCoverage(patientId: string, policyNumber: string) CoverageResult
+        +submitClaim(authorizationCode: string, amount: number) ClaimResult
+    }
+
+    class BillingResult {
+        <<interface>>
+        +readonly baseAmount: number
+        +readonly discount: number
+        +readonly totalAmount: number
+        +readonly method: string
+    }
+
+    class BillingStrategy {
+        <<interface>>
+        +readonly name: string
+        +calculate(baseAmount: number) BillingResult
+    }
+
+    class PrivateBilling {
+        +readonly name: "private"
+        +calculate(baseAmount: number) BillingResult
+    }
+
+    class InsuranceBilling {
+        +readonly name: "insurance"
+        -readonly coveragePercentage: number
+        +calculate(baseAmount: number) BillingResult
+    }
+
+    class AgreementBilling {
+        +readonly name: "agreement"
+        -readonly discountPercentage: number
+        +calculate(baseAmount: number) BillingResult
+    }
+
+    class BillingContext {
+        -strategy: BillingStrategy
+        +setStrategy(strategy: BillingStrategy) void
+        +calculateBill(baseAmount: number) BillingResult
+    }
+
+    class Repository~T~ {
+        <<interface>>
+        +findAll() T[]
+        +findById(id: string) T | undefined
+        +save(entity: T) void
+        +update(id: string, partial: Partial~T~) T | undefined
+        +delete(id: string) boolean
+    }
+
+    class InMemoryRepository~T~ {
+        #readonly store: Map~string, T~
+        +findAll() T[]
+        +findById(id: string) T | undefined
+        +save(entity: T) void
+        +update(id: string, partial: Partial~T~) T | undefined
+        +delete(id: string) boolean
+    }
+
+    class PatientRepository {
+        +findByBillingType(billingType: BillingType) Patient[]
+        +findByName(name: string) Patient[]
+    }
+
+    class AppointmentRepository {
+        +findByPatientId(patientId: string) Appointment[]
+        +findByDoctorId(doctorId: string) Appointment[]
+        +findByDate(date: string) Appointment[]
+    }
+
+    class ClinicalRecordRepository {
+        +findByPatientId(patientId: string) ClinicalRecord[]
+        +findByDoctorId(doctorId: string) ClinicalRecord[]
+    }
+
+    class InvoiceRepository {
+        +findByPatientId(patientId: string) Invoice[]
+    }
+
+    class PersonFactory {
+        +static create(input: PersonInput) Person
+    }
+
+    class HospitalFacade {
+        -readonly config: HospitalConfig
+        -readonly eventEmitter: ClinicalEventEmitter
+        -readonly insuranceAdapter: InsurancePort
+        -readonly patientRepo: PatientRepository
+        -readonly appointmentRepo: AppointmentRepository
+        -readonly clinicalRepo: ClinicalRecordRepository
+        -readonly invoiceRepo: InvoiceRepository
+        +getHospitalInfo() string
+        +registerPatient(data) Patient
+        +getPatient(id: string) Patient | undefined
+        +getAllPatients() Patient[]
+        +registerDoctor(data) Doctor
+        +scheduleAppointment(patientId, doctorId, date, reason) Appointment | null
+        +confirmAppointment(appointmentId: string) Appointment | undefined
+        +cancelAppointment(appointmentId: string) Appointment | undefined
+        +addClinicalRecord(data) ClinicalRecord
+        +getPatientHistory(patientId: string) ClinicalRecord[]
+        +generateInvoice(patientId, appointmentId, baseAmount) Invoice | null
+        +verifyInsurance(patientId: string, policyNumber: string) string
+        +submitInsuranceClaim(authorizationCode: string, amount: number) string
+        +getPatientInvoices(patientId: string) Invoice[]
+    }
+    Doctor --|> Person
+    Patient --|> Person
+    AdminStaff --|> Person
+    EmailNotifier ..|> ClinicalObserver
+    SmsNotifier ..|> ClinicalObserver
+    PushNotifier ..|> ClinicalObserver
+    ClinicalEventEmitter o-- "0..*" ClinicalObserver : observers
+    ClinicalEventEmitter ..> ClinicalEvent : emits
+    ClinicalObserver ..> ClinicalEvent : receives
+    ClinicalEvent --> ClinicalEventType : type
+    InsuranceAdapter ..|> InsurancePort
+    InsuranceAdapter *-- ExternalInsuranceAPI : externalApi
+    ExternalInsuranceAPI ..> ExternalInsuranceResponse : returns
+    InsurancePort ..> CoverageResult : returns
+    InsurancePort ..> ClaimResult : returns
+    PrivateBilling ..|> BillingStrategy
+    InsuranceBilling ..|> BillingStrategy
+    AgreementBilling ..|> BillingStrategy
+    BillingContext --> BillingStrategy : strategy
+    BillingStrategy ..> BillingResult : returns
+    InMemoryRepository~T~ ..|> Repository~T~
+    PatientRepository --|> InMemoryRepository~T~
+    AppointmentRepository --|> InMemoryRepository~T~
+    ClinicalRecordRepository --|> InMemoryRepository~T~
+    InvoiceRepository --|> InMemoryRepository~T~
+    PatientRepository ..> Patient : stores
+    AppointmentRepository ..> Appointment : stores
+    ClinicalRecordRepository ..> ClinicalRecord : stores
+    InvoiceRepository ..> Invoice : stores
+    HospitalConfig *-- HospitalSettings : settings
+    PersonFactory ..> Person : creates
+    PersonFactory ..> Patient : creates
+    PersonFactory ..> Doctor : creates
+    PersonFactory ..> AdminStaff : creates
+    Appointment --> Patient : patientId
+    Appointment --> Doctor : doctorId
+    ClinicalRecord --> Patient : patientId
+    ClinicalRecord --> Doctor : doctorId
+    Invoice --> Patient : patientId
+    Invoice --> Appointment : appointmentId
+    Person --> PersonRole : role
+    Patient --> BillingType : billingType
+    Appointment --> AppointmentStatus : status
+    HospitalFacade *-- HospitalConfig : config
+    HospitalFacade *-- ClinicalEventEmitter : eventEmitter
+    HospitalFacade *-- PatientRepository : patientRepo
+    HospitalFacade *-- AppointmentRepository : appointmentRepo
+    HospitalFacade *-- ClinicalRecordRepository : clinicalRepo
+    HospitalFacade *-- InvoiceRepository : invoiceRepo
+    HospitalFacade --> InsurancePort : insuranceAdapter
+    HospitalFacade ..> PersonFactory : uses
+    HospitalFacade ..> BillingContext : uses
+    HospitalFacade ..> PrivateBilling : uses
+    HospitalFacade ..> InsuranceBilling : uses
+    HospitalFacade ..> AgreementBilling : uses
+    HospitalFacade ..> EmailNotifier : creates
+    HospitalFacade ..> SmsNotifier : creates
+    HospitalFacade ..> ExternalInsuranceAPI : creates
+    HospitalFacade ..> InsuranceAdapter : creates
